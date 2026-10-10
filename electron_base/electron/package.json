@@ -1,0 +1,71 @@
+{
+  "name": "cat-cafe",
+  "productName": "Котокафе",
+  "version": "1.0.0",
+  "description": "Учёт котиков и их здоровья в кошачьем кафе",
+  "author": "Котокафе",
+  "main": "electron/main.js",
+  "scripts": {
+    "build": "node build/precompile.js && vite build",
+    "precompile": "node build/precompile.js",
+    "start": "npm run build && electron .",
+    "dev": "node build/precompile.js && vite --host 127.0.0.1 --port 4173",
+    "test": "node build/smoke-templates.js",
+    "dist": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
+    "nunjucks": "^3.2.4",
+    "vite": "^8.3.4"
+  },
+  "build": {
+    "appId": "ru.kotokafe.app",
+    "productName": "Котокафе",
+    "artifactName": "Kotokafe-${version}-${os}-${arch}.${ext}",
+    "directories": {
+      "output": "release",
+      "buildResources": "resources"
+    },
+    "files": [
+      "electron/**",
+      "dist/**",
+      "resources/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "icon": "resources/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "Kotokafe-${version}-portable.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Котокафе"
+    },
+    "linux": {
+      "icon": "resources/icon.png",
+      "target": [
+        "dir"
+      ]
+    }
+  }
+}

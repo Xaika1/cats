@@ -1,0 +1,9 @@
+{% macro cat_icon(cls='') %}<svg class="{{ cls }}" viewBox="0 0 64 64" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M10 5 L23 18 Q32 15 41 18 L54 5 Q58 20 56 31 Q57 55 32 58 Q7 55 8 31 Q6 20 10 5 Z M20 33 a4 4.5 0 1 0 8 0 a4 4.5 0 1 0 -8 0 Z M36 33 a4 4.5 0 1 0 8 0 a4 4.5 0 1 0 -8 0 Z M28.5 42 L35.5 42 L32 46 Z"/></svg>{% endmacro %}
+
+{% macro status_icon(status) %}{% if status == 'healthy' %}bi-heart-pulse{% elif status == 'observation' %}bi-eye{% elif status == 'sick' %}bi-bandaid{% else %}bi-question-circle{% endif %}{% endmacro %}
+
+{% macro status_pill(status, label) %}<span class="status-pill tone-{{ status or 'none' }}"><i class="bi {{ status_icon(status) }}"></i>{{ label or 'Нет записей' }}</span>{% endmacro %}
+
+{% macro age_label(age) %}{% if age === 0 %}меньше года{% elif age %}{{ age }} {% if age % 10 == 1 and age % 100 != 11 %}год{% elif age % 10 >= 2 and age % 10 <= 4 and (age % 100 < 10 or age % 100 >= 20) %}года{% else %}лет{% endif %}{% else %}возраст не указан{% endif %}{% endmacro %}
+
+{% macro date_ru(value) %}{% if value %}{{ value.split('-')[2] }}.{{ value.split('-')[1] }}.{{ value.split('-')[0] }}{% else %}—{% endif %}{% endmacro %}

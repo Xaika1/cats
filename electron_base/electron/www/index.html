@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Котокафе</title>
+    <link rel="stylesheet" href="static/bootstrap-5.3.8-dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="static/bootstrap-5.3.8-dist/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="static/custom/css/app.css">
+</head>
+<body>
+    <div id="root">
+        <div class="d-flex flex-column align-items-center justify-content-center text-body-secondary" style="min-height:100vh;">
+            <svg class="loader-cat mb-3" viewBox="0 0 64 64" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M10 5 L23 18 Q32 15 41 18 L54 5 Q58 20 56 31 Q57 55 32 58 Q7 55 8 31 Q6 20 10 5 Z M20 33 a4 4.5 0 1 0 8 0 a4 4.5 0 1 0 -8 0 Z M36 33 a4 4.5 0 1 0 8 0 a4 4.5 0 1 0 -8 0 Z M28.5 42 L35.5 42 L32 46 Z"/></svg>
+            <div class="fw-semibold">Подключаемся к серверу…</div>
+        </div>
+    </div>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastHost" aria-live="polite" aria-atomic="true"></div>
+
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-body p-4 text-center">
+                    <div class="stat-icon tone-sick rounded-4 d-inline-grid mb-3" style="width:56px;height:56px;place-items:center;font-size:1.5rem;">
+                        <i class="bi bi-trash3"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Вы уверены?</h5>
+                    <p class="text-body-secondary small mb-4" id="confirmModalBody"></p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                        <button type="button" class="btn btn-danger" id="confirmModalOk">Удалить</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="nunjucks.min.js"></script>
+    <script src="bootstrap.bundle.min.js"></script>
+    <script type="module" src="templates.js"></script>
+    <script type="module" src="./app.js"></script>
+    <script type="module" src="static/custom/js/app.js"></script>
+</body>
+</html>

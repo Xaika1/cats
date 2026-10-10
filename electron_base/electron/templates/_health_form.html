@@ -1,0 +1,41 @@
+<form class="health-form" id="healthForm" data-form-id="{{ healthFormId }}" novalidate>
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h3 class="h6 fw-800 mb-0">
+            {% if healthFormId == 'new' %}<i class="bi bi-plus-circle text-primary me-1"></i>Новая запись{% else %}<i class="bi bi-pencil-square text-primary me-1"></i>Изменение записи{% endif %}
+        </h3>
+    </div>
+    <div class="row g-3">
+        <div class="col-6 col-lg-3">
+            <label for="healthDate" class="form-label">Дата <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" id="healthDate" required value="{{ healthForm.date }}">
+            <div class="invalid-feedback">Укажите дату.</div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <label for="healthStatus" class="form-label">Состояние</label>
+            <select class="form-select" id="healthStatus">
+                <option value="healthy" {% if healthForm.status == 'healthy' %}selected{% endif %}>Здоров</option>
+                <option value="observation" {% if healthForm.status == 'observation' %}selected{% endif %}>Наблюдение</option>
+                <option value="sick" {% if healthForm.status == 'sick' %}selected{% endif %}>Болен</option>
+            </select>
+        </div>
+        <div class="col-12 col-lg-2">
+            <label for="healthWeight" class="form-label">Вес, кг</label>
+            <input type="number" class="form-control" id="healthWeight" step="0.01" min="0.1" max="29.99"
+                   placeholder="4.5" value="{{ healthForm.weight }}">
+            <div class="invalid-feedback">От 0.1 до 30 кг.</div>
+        </div>
+        <div class="col-12 col-lg-4">
+            <label for="healthNote" class="form-label">Заметка</label>
+            <input type="text" class="form-control" id="healthNote" maxlength="500"
+                   placeholder="Осмотр, прививка, лечение…" value="{{ healthForm.note }}">
+        </div>
+    </div>
+    <div class="alert alert-danger py-2 small d-none mt-3 mb-0" id="healthFormError"></div>
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary btn-sm" id="healthSubmitBtn">
+            <span class="spinner-border spinner-border-sm me-1 d-none" id="healthSpinner" role="status"></span>
+            <span id="healthSubmitText">Сохранить</span>
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="healthCancelBtn">Отмена</button>
+    </div>
+</form>

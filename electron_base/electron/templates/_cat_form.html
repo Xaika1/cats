@@ -1,0 +1,199 @@
+{% from "_macros.html" import cat_icon %}
+<div class="cat-panel p-4 mb-4">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h2 class="h5 fw-800 mb-0">
+            <i class="bi {% if catFormId %}bi-pencil-square{% else %}bi-plus-circle{% endif %} text-primary me-2"></i>
+            {% if catFormId %}Редактирование котика{% else %}Новый котик{% endif %}
+        </h2>
+        <button type="button" class="btn btn-outline-secondary btn-icon border-0" id="catCancelX" aria-label="Закрыть">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+
+    <form id="catForm" data-cat-id="{{ catFormId or '' }}" novalidate>
+        <div class="row g-4">
+            <div class="col-12 col-md-4 col-lg-3">
+                <label class="photo-drop" id="photoDrop" for="catPhoto">
+                    <img id="photoPreview" src="{{ catForm.photo }}" alt="" class="{% if not catForm.photo %}d-none{% endif %}">
+                    <span class="hint {% if catForm.photo %}d-none{% endif %}" id="photoHint">
+                        <i class="bi bi-camera d-block mb-1"></i>
+                        Нажмите или перетащите фото
+                        <span class="d-block small opacity-75">JPG, PNG, WEBP до 10 МБ</span>
+                    </span>
+                </label>
+                <input type="file" class="d-none" id="catPhoto" accept="image/png,image/jpeg,image/webp,image/gif">
+                <div class="d-flex gap-2 mt-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary flex-fill" id="photoPick">
+                        <i class="bi bi-image me-1"></i>Выбрать
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger {% if not catForm.photo %}d-none{% endif %}" id="photoRemove"
+                            aria-label="Убрать фото" data-bs-toggle="tooltip" title="Убрать фото">
+                        <i class="bi bi-trash3"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-8 col-lg-9">
+                <div class="row g-3">
+                    <div class="col-12 col-lg-6">
+                        <label for="catName" class="form-label">Кличка <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="catName" maxlength="50" required
+                               placeholder="Например, Барсик" value="{{ catForm.cat_name }}">
+                        <div class="invalid-feedback">Введите кличку котика.</div>
+                    </div>
+                    <div class="col-12 col-lg-6">
+                        <label for="catBreed" class="form-label">Порода</label>
+                        <input type="text" class="form-control" id="catBreed" maxlength="100" list="breedOptions"
+                               placeholder="Беспородный" value="{{ catForm.breed }}">
+                        <datalist id="breedOptions">
+                            {% for breed in breeds %}<option value="{{ breed }}">{% endfor %}
+                        </datalist>
+                    </div>
+                    <div class="col-12 col-lg-6">
+                        <label class="form-label d-block">Пол</label>
+                        <div class="btn-group w-100 text-nowrap" role="group" aria-label="Пол">
+                            <input type="radio" class="btn-check" name="catGender" id="genderMale" value="male" {% if catForm.gender != 'female' %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="genderMale"><i class="bi bi-gender-male me-1"></i>Кот</label>
+                            <input type="radio" class="btn-check" name="catGender" id="genderFemale" value="female" {% if catForm.gender == 'female' %}checked{% endif %}>
+                            <label class="btn btn-outline-primary" for="genderFemale"><i class="bi bi-gender-female me-1"></i>Кошка</label>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-6">
+                        <label for="catAge" class="form-label">Возраст, лет</label>
+                        <input type="number" class="form-control" id="catAge" min="0" max="30" step="1"
+                               placeholder="—" value="{{ catForm.age }}">
+                        <div class="invalid-feedback">От 0 до 30 лет.</div>
+                    </div>
+                    <div class="col-12">
+                        <label for="catInfo" class="form-label">Описание</label>
+                        <textarea class="form-control" id="catInfo" rows="2" maxlength="500"
+                                  placeholder="Характер, привычки, любимые игрушки…">{{ catForm.cat_information }}</textarea>
+                    </div>
+                </div>
+
+                <div class="alert alert-danger py-2 small d-none mt-3 mb-0" id="catFormError"></div>
+
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary" id="catSubmitBtn">
+                        <span class="spinner-border spinner-border-sm me-2 d-none" id="catSpinner" role="status"></span>
+                        <i class="bi bi-check-lg me-1" id="catSubmitIcon"></i>
+                        <span id="catSubmitText">Сохранить</span>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" id="catCancelBtn">Отмена</button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+(() => {
+    const form = document.getElementById('catForm');
+    if (!form) return;
+
+    const api = window.taskflowCats;
+    const catId = form.dataset.catId || null;
+    const fileInput = document.getElementById('catPhoto');
+    const drop = document.getElementById('photoDrop');
+    const preview = document.getElementById('photoPreview');
+    const hint = document.getElementById('photoHint');
+    const removeBtn = document.getElementById('photoRemove');
+    const errorBox = document.getElementById('catFormError');
+    let file = null;
+    let removePhoto = false;
+
+    const close = () => api.toggleCatForm(catId);
+    document.getElementById('catCancelBtn').addEventListener('click', close);
+    document.getElementById('catCancelX').addEventListener('click', close);
+    document.getElementById('photoPick').addEventListener('click', () => fileInput.click());
+
+    function showError(message) {
+        errorBox.textContent = message;
+        errorBox.classList.remove('d-none');
+    }
+
+    function usePhoto(selected) {
+        if (!selected) return;
+        if (!selected.type.startsWith('image/')) {
+            showError('Можно загрузить только изображение.');
+            return;
+        }
+        if (selected.size > 10 * 1024 * 1024) {
+            showError('Фото больше 10 МБ.');
+            return;
+        }
+        errorBox.classList.add('d-none');
+        file = selected;
+        removePhoto = false;
+        preview.src = URL.createObjectURL(selected);
+        preview.classList.remove('d-none');
+        hint.classList.add('d-none');
+        removeBtn.classList.remove('d-none');
+    }
+
+    fileInput.addEventListener('change', () => usePhoto(fileInput.files[0]));
+
+    ['dragenter', 'dragover'].forEach((type) => drop.addEventListener(type, (event) => {
+        event.preventDefault();
+        drop.classList.add('dragover');
+    }));
+    ['dragleave', 'drop'].forEach((type) => drop.addEventListener(type, (event) => {
+        event.preventDefault();
+        drop.classList.remove('dragover');
+    }));
+    drop.addEventListener('drop', (event) => usePhoto(event.dataTransfer.files[0]));
+
+    removeBtn.addEventListener('click', () => {
+        file = null;
+        removePhoto = true;
+        fileInput.value = '';
+        preview.removeAttribute('src');
+        preview.classList.add('d-none');
+        hint.classList.remove('d-none');
+        removeBtn.classList.add('d-none');
+    });
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const nameInput = document.getElementById('catName');
+        const ageInput = document.getElementById('catAge');
+        const submitBtn = document.getElementById('catSubmitBtn');
+        const spinner = document.getElementById('catSpinner');
+        const icon = document.getElementById('catSubmitIcon');
+        const text = document.getElementById('catSubmitText');
+
+        errorBox.classList.add('d-none');
+        nameInput.classList.toggle('is-invalid', !nameInput.value.trim());
+        const age = ageInput.value;
+        const badAge = age !== '' && (Number(age) < 0 || Number(age) > 30 || !Number.isInteger(Number(age)));
+        ageInput.classList.toggle('is-invalid', badAge);
+        if (!nameInput.value.trim() || badAge) {
+            (badAge ? ageInput : nameInput).focus();
+            return;
+        }
+
+        submitBtn.disabled = true;
+        spinner.classList.remove('d-none');
+        icon.classList.add('d-none');
+        text.textContent = 'Сохраняем…';
+
+        try {
+            await api.saveCat(catId, {
+                cat_name: nameInput.value.trim(),
+                cat_information: document.getElementById('catInfo').value.trim(),
+                breed: document.getElementById('catBreed').value.trim(),
+                gender: form.querySelector('input[name="catGender"]:checked').value,
+                age,
+            }, file, removePhoto);
+        } catch (error) {
+            showError(error.message || 'Не удалось сохранить');
+            submitBtn.disabled = false;
+            spinner.classList.add('d-none');
+            icon.classList.remove('d-none');
+            text.textContent = 'Сохранить';
+        }
+    });
+
+    document.getElementById('catName').focus();
+})();
+</script>

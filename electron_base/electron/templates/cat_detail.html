@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% from "_macros.html" import cat_icon, status_icon, status_pill, age_label, date_ru %}
+
+{% block content %}
+<span id="catIdSource" class="d-none" data-cat-id="{{ params.id }}"></span>
+
+<div class="d-flex align-items-center gap-3 mb-4">
+    <button type="button" class="btn btn-outline-secondary btn-icon" id="backBtn" aria-label="Назад к списку"
+            data-bs-toggle="tooltip" title="Ко всем котикам">
+        <i class="bi bi-arrow-left"></i>
+    </button>
+    <div class="flex-grow-1 min-w-0">
+        <div class="text-body-secondary small"><a href="#/cats" class="text-reset text-decoration-none">Котики</a> / карточка</div>
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <h1 class="h2 fw-800 mb-0 text-truncate">{{ cat.cat_name }}</h1>
+            {{ status_pill(cat.last_status, cat.last_status_display) }}
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-outline-primary" id="editCatBtn">
+            <i class="bi bi-pencil me-1"></i>Изменить
+        </button>
+        <button type="button" class="btn btn-outline-danger" id="deleteCatBtn" data-name="{{ cat.cat_name }}">
+            <i class="bi bi-trash3 me-1"></i>Удалить
+        </button>
+    </div>
+</div>
+
+{% if loadError %}
+<div class="alert alert-danger d-flex align-items-center gap-2 rounded-4" role="alert">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div class="flex-grow-1">{{ loadError }}</div>
+    <button type="button" class="btn btn-sm btn-outline-danger" id="retryBtn">Повторить</button>
+</div>
+{% endif %}
+
+{% if showCatForm and catFormId %}
+{% include "_cat_form.html" %}
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-12 col-lg-4">
+        <div class="cat-panel p-3">
+            <div class="cat-photo cat-photo-lg tone-{{ cat.id % 6 }} {% if cat.photo_credit %}mb-2{% else %}mb-3{% endif %}">
+                {% if cat.photo %}
+                <img src="{{ cat.photo }}" alt="{{ cat.cat_name }}">
+                {% else %}
+                {{ cat_icon('cat-silhouette') }}
+                {% endif %}
+            </div>
+            {% if cat.photo_credit %}
+            <div class="photo-credit mb-3"><i class="bi bi-camera me-1"></i>Фото: {{ cat.photo_credit }}</div>
+            {% endif %}
+            <div class="info-grid mb-3">
+                <div class="info-item">
+                    <div class="label">Порода</div>
+                    <div class="value text-truncate">{{ cat.breed or '—' }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Пол</div>
+                    <div class="value">
+                        <i class="bi {% if cat.gender == 'female' %}bi-gender-female{% else %}bi-gender-male{% endif %} text-primary me-1"></i>{{ cat.gender_display }}
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Возраст</div>
+                    <div class="value">{{ age_label(cat.age) }}</div>
+                </div>
+                <div class="info-item">
+                    <div class="label">Вес</div>
+                    <div class="value">{% if cat.last_weight %}{{ cat.last_weight }} кг{% else %}—{% endif %}</div>
+                </div>
+            </div>
+            <div class="px-1">
+                <div class="text-body-secondary small fw-bold text-uppercase mb-1">О котике</div>
+                <p class="mb-1">{{ cat.cat_information or "Описание пока не добавлено" }}</p>
+            </div>
+        </div>
+
+        {% if weightChart %}
+        <div class="cat-panel p-3 mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="text-body-secondary small fw-bold text-uppercase"><i class="bi bi-graph-up me-1"></i>Динамика веса</div>
+                <span class="status-pill {% if weightChart.delta < 0 %}tone-observation{% elif weightChart.delta > 0 %}tone-healthy{% else %}tone-none{% endif %}">
+                    {% if weightChart.delta > 0 %}+{% endif %}{{ weightChart.delta }} кг
+                </span>
+            </div>
+            <svg viewBox="0 0 {{ weightChart.width }} {{ weightChart.height }}" class="w-100" style="height:110px;" preserveAspectRatio="none" role="img" aria-label="График веса">
+                <polygon points="{{ weightChart.area }}" fill="rgba(217,119,87,.12)"></polygon>
+                <polyline points="{{ weightChart.line }}" fill="none" stroke="#D97757" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></polyline>
+                {% for dot in weightChart.dots %}
+                <circle cx="{{ dot.x }}" cy="{{ dot.y }}" r="3.5" fill="#fff" stroke="#D97757" stroke-width="2" vector-effect="non-scaling-stroke"><title>{{ date_ru(dot.date) }}: {{ dot.weight }} кг</title></circle>
+                {% endfor %}
+            </svg>
+            <div class="d-flex justify-content-between small text-body-secondary">
+                <span>мин. {{ weightChart.min }} кг</span>
+                <span>макс. {{ weightChart.max }} кг</span>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-12 col-lg-8">
+        <div class="cat-panel p-4">
+            <div class="d-flex align-items-center justify-content-between gap-2 mb-3">
+                <div>
+                    <h2 class="h5 fw-800 mb-0"><i class="bi bi-clipboard2-pulse text-primary me-2"></i>Сведения о здоровье</h2>
+                    <div class="text-body-secondary small">Записей: {{ health | length }}{% if cat.health_count != health | length %} из {{ cat.health_count }}{% endif %}</div>
+                </div>
+                <button type="button" class="btn btn-primary" id="addHealthBtn">
+                    <i class="bi bi-plus-lg me-1"></i>Добавить запись
+                </button>
+            </div>
+
+            <form class="row g-2 mb-4" id="healthFilterForm">
+                <div class="col-12 col-md-4">
+                    <select class="form-select form-select-sm" id="healthStatusFilter" aria-label="Состояние">
+                        <option value="">Любое состояние</option>
+                        <option value="healthy" {% if healthFilters.status == 'healthy' %}selected{% endif %}>Здоров</option>
+                        <option value="observation" {% if healthFilters.status == 'observation' %}selected{% endif %}>Наблюдение</option>
+                        <option value="sick" {% if healthFilters.status == 'sick' %}selected{% endif %}>Болен</option>
+                    </select>
+                </div>
+                <div class="col-5 col-md-3">
+                    <input type="date" class="form-control form-control-sm" id="healthDateFrom" value="{{ healthFilters.date_from }}"
+                           aria-label="С даты" data-bs-toggle="tooltip" title="С даты">
+                </div>
+                <div class="col-5 col-md-3">
+                    <input type="date" class="form-control form-control-sm" id="healthDateTo" value="{{ healthFilters.date_to }}"
+                           aria-label="По дату" data-bs-toggle="tooltip" title="По дату">
+                </div>
+                <div class="col-2 col-md-2 d-grid">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="healthFilterReset" aria-label="Сбросить фильтр">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                </div>
+            </form>
+
+            {% if healthFormId == 'new' %}
+            <div class="mb-4">{% include "_health_form.html" %}</div>
+            {% endif %}
+
+            {% if health | length %}
+            <ul class="health-timeline">
+                {% for record in health %}
+                <li class="health-item {% if healthFormId == record.id %}editing{% endif %}">
+                    <span class="marker tone-{{ record.status }}"><i class="bi {{ status_icon(record.status) }}"></i></span>
+                    <div class="content">
+                        {% if healthFormId == record.id %}
+                        {% include "_health_form.html" %}
+                        {% else %}
+                        <div class="d-flex align-items-start justify-content-between gap-2">
+                            <div class="min-w-0">
+                                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                                    <span class="fw-800">{{ date_ru(record.date) }}</span>
+                                    {{ status_pill(record.status, record.status_display) }}
+                                    {% if record.weight %}<span class="small text-body-secondary"><i class="bi bi-speedometer2 me-1"></i>{{ record.weight }} кг</span>{% endif %}
+                                </div>
+                                <div class="small {% if not record.note %}text-body-secondary fst-italic{% endif %}">{{ record.note or "Без заметки" }}</div>
+                            </div>
+                            <div class="d-flex gap-1 flex-shrink-0">
+                                <button type="button" class="btn btn-sm btn-outline-secondary btn-icon border-0" data-health-edit="{{ record.id }}"
+                                        aria-label="Изменить" data-bs-toggle="tooltip" title="Изменить">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-icon border-0" data-health-delete="{{ record.id }}"
+                                        data-date="{{ date_ru(record.date) }}" aria-label="Удалить" data-bs-toggle="tooltip" title="Удалить">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% elif healthFormId != 'new' %}
+            <div class="empty-state py-4">
+                {{ cat_icon() }}
+                <p class="mb-3">{% if healthFilters.status or healthFilters.date_from or healthFilters.date_to %}Нет записей по выбранным условиям{% else %}Записей о здоровье пока нет{% endif %}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+(() => {
+    const source = document.getElementById('catIdSource');
+    if (!source) return;
+
+    const api = window.taskflowCats;
+    const catId = source.dataset.catId;
+
+    document.getElementById('backBtn').addEventListener('click', () => api.backToCats());
+    document.getElementById('retryBtn')?.addEventListener('click', () => api.reload());
+    document.getElementById('editCatBtn').addEventListener('click', () => {
+        api.toggleCatForm(catId);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    const deleteBtn = document.getElementById('deleteCatBtn');
+    deleteBtn.addEventListener('click', async () => {
+        const ok = await window.ui.confirm(`Котик «${deleteBtn.dataset.name}» и вся история его здоровья будут удалены.`);
+        if (!ok) return;
+        try {
+            await api.removeCat(catId);
+        } catch (error) {
+            window.ui.toast(error.message || 'Не удалось удалить', 'danger');
+        }
+    });
+
+    document.getElementById('healthStatusFilter').addEventListener('change', (e) => api.setHealthFilter('status', e.target.value));
+    document.getElementById('healthDateFrom').addEventListener('change', (e) => api.setHealthFilter('date_from', e.target.value));
+    document.getElementById('healthDateTo').addEventListener('change', (e) => api.setHealthFilter('date_to', e.target.value));
+    document.getElementById('healthFilterReset').addEventListener('click', () => api.resetHealthFilters());
+
+    document.getElementById('addHealthBtn').addEventListener('click', () => api.toggleHealthForm(null));
+
+    document.querySelectorAll('[data-health-edit]').forEach((button) => {
+        button.addEventListener('click', () => api.toggleHealthForm(button.dataset.healthEdit));
+    });
+
+    document.querySelectorAll('[data-health-delete]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const ok = await window.ui.confirm(`Запись о здоровье от ${button.dataset.date} будет удалена.`);
+            if (!ok) return;
+            try {
+                await api.removeHealth(button.dataset.healthDelete);
+            } catch (error) {
+                window.ui.toast(error.message || 'Не удалось удалить', 'danger');
+            }
+        });
+    });
+
+    const healthForm = document.getElementById('healthForm');
+    if (!healthForm) return;
+
+    document.getElementById('healthCancelBtn').addEventListener('click', () => api.closeHealthForm());
+    healthForm.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+
+    healthForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const dateInput = document.getElementById('healthDate');
+        const weightInput = document.getElementById('healthWeight');
+        const errorBox = document.getElementById('healthFormError');
+        const submitBtn = document.getElementById('healthSubmitBtn');
+        const spinner = document.getElementById('healthSpinner');
+        const text = document.getElementById('healthSubmitText');
+
+        errorBox.classList.add('d-none');
+        const weight = weightInput.value;
+        const badWeight = weight !== '' && !(Number(weight) > 0 && Number(weight) < 30);
+        dateInput.classList.toggle('is-invalid', !dateInput.value);
+        weightInput.classList.toggle('is-invalid', badWeight);
+        if (!dateInput.value || badWeight) return;
+
+        submitBtn.disabled = true;
+        spinner.classList.remove('d-none');
+        text.textContent = 'Сохраняем…';
+
+        try {
+            await api.saveHealth(catId, healthForm.dataset.formId, {
+                date: dateInput.value,
+                status: document.getElementById('healthStatus').value,
+                weight,
+                note: document.getElementById('healthNote').value.trim(),
+            });
+        } catch (error) {
+            errorBox.textContent = error.message || 'Не удалось сохранить';
+            errorBox.classList.remove('d-none');
+            submitBtn.disabled = false;
+            spinner.classList.add('d-none');
+            text.textContent = 'Сохранить';
+        }
+    });
+})();
+</script>
+{% endblock %}

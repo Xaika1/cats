@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% from "_macros.html" import cat_icon, status_icon, age_label, date_ru %}
+
+{% block content %}
+<div class="page-head d-flex align-items-end justify-content-between gap-3 mb-4">
+    <div>
+        <span class="page-tag mb-2"><i class="bi bi-cup-hot"></i>Кошачье кафе</span>
+        <h1 class="h2 mb-1">Наши котики</h1>
+        <div class="text-body-secondary">Показано {{ cats | length }} из {{ stats.total or 0 }}</div>
+    </div>
+    <button type="button" class="btn btn-primary btn-lg" id="addCatBtn">
+        <i class="bi bi-plus-lg me-1"></i>Добавить котика
+    </button>
+</div>
+
+{% if loadError %}
+<div class="alert alert-danger d-flex align-items-center gap-2 rounded-4" role="alert">
+    <i class="bi bi-exclamation-triangle-fill"></i>
+    <div class="flex-grow-1">{{ loadError }}</div>
+    <button type="button" class="btn btn-sm btn-outline-danger" id="retryBtn">Повторить</button>
+</div>
+{% endif %}
+
+{% if showCatForm and not catFormId %}
+{% include "_cat_form.html" %}
+{% endif %}
+
+<div class="row g-3 mb-4">
+    {% set chips = [
+        ['', 'Все котики', stats.total, 'bi-grid', 'all'],
+        ['healthy', 'Здоровы', stats.healthy, 'bi-heart-pulse', 'healthy'],
+        ['observation', 'Под наблюдением', stats.observation, 'bi-eye', 'observation'],
+        ['sick', 'Болеют', stats.sick, 'bi-bandaid', 'sick'],
+        ['none', 'Без записей', stats['none'], 'bi-question-circle', 'none']
+    ] %}
+    {% for chip in chips %}
+    <div class="col">
+        <button type="button" class="stat-chip {% if filters.status == chip[0] %}active{% endif %}" data-status-chip="{{ chip[0] }}">
+            <span class="stat-icon tone-{{ chip[4] }}"><i class="bi {{ chip[3] }}"></i></span>
+            <span>
+                <span class="stat-value d-block">{{ chip[2] or 0 }}</span>
+                <span class="stat-label">{{ chip[1] }}</span>
+            </span>
+        </button>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="cat-panel p-3 mb-4">
+    <form id="searchForm" class="row g-2 align-items-center" autocomplete="off">
+        <div class="col-12 col-lg-4">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" class="form-control" id="searchInput"
+                       placeholder="Кличка, порода или описание" value="{{ filters.name }}">
+            </div>
+        </div>
+        <div class="col-6 col-lg-2">
+            <select class="form-select" id="genderFilter" aria-label="Пол">
+                <option value="">Любой пол</option>
+                <option value="male" {% if filters.gender == 'male' %}selected{% endif %}>Коты</option>
+                <option value="female" {% if filters.gender == 'female' %}selected{% endif %}>Кошки</option>
+            </select>
+        </div>
+        <div class="col-6 col-lg-2">
+            <select class="form-select" id="breedFilter" aria-label="Порода">
+                <option value="">Все породы</option>
+                {% for breed in breeds %}
+                <option value="{{ breed }}" {% if filters.breed | lower == breed | lower %}selected{% endif %}>{{ breed }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-8 col-lg-3">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-sort-down"></i></span>
+                <select class="form-select" id="sortSelect" aria-label="Сортировка">
+                    <option value="name" {% if filters.sort == 'name' %}selected{% endif %}>По кличке</option>
+                    <option value="age" {% if filters.sort == 'age' %}selected{% endif %}>Сначала младшие</option>
+                    <option value="-age" {% if filters.sort == '-age' %}selected{% endif %}>Сначала старшие</option>
+                    <option value="last_date" {% if filters.sort == 'last_date' %}selected{% endif %}>Недавний осмотр</option>
+                </select>
+            </div>
+        </div>
+        <div class="col-4 col-lg-1 d-grid">
+            <button type="button" class="btn btn-outline-secondary" id="resetFilter"
+                    data-bs-toggle="tooltip" title="Сбросить фильтры" aria-label="Сбросить фильтры">
+                <i class="bi bi-arrow-counterclockwise"></i>
+            </button>
+        </div>
+    </form>
+</div>
+
+{% if cats | length %}
+<div class="row g-4">
+    {% for cat in cats %}
+    <div class="col-12 col-md-6 col-xl-4">
+        <article class="cat-card" tabindex="0" data-open-cat="{{ cat.id }}" aria-label="Открыть карточку {{ cat.cat_name }}">
+            <div class="cat-photo tone-{{ cat.id % 6 }}">
+                {% if cat.photo %}
+                <img src="{{ cat.photo }}" alt="{{ cat.cat_name }}" loading="lazy" {% if cat.photo_credit %}title="Фото: {{ cat.photo_credit }}"{% endif %}>
+                {% else %}
+                {{ cat_icon('cat-silhouette') }}
+                {% endif %}
+                <span class="status-pill on-photo">
+                    <span class="dot dot-{{ cat.last_status or 'none' }}"></span>{{ cat.last_status_display or 'Нет записей' }}
+                </span>
+            </div>
+            <div class="cat-card-body">
+                <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                    <h2 class="cat-name text-truncate">{{ cat.cat_name }}</h2>
+                    <i class="bi {% if cat.gender == 'female' %}bi-gender-female{% else %}bi-gender-male{% endif %} text-body-secondary"
+                       title="{{ cat.gender_display }}"></i>
+                </div>
+                <div class="cat-meta mb-2">{{ cat.breed or 'Порода не указана' }} · {{ age_label(cat.age) }}</div>
+                <p class="cat-desc mb-3">{{ cat.cat_information or "Описание пока не добавлено" }}</p>
+                <div class="cat-card-footer">
+                    <span>
+                        <i class="bi bi-calendar-event me-1"></i>
+                        {% if cat.last_date %}Осмотр {{ date_ru(cat.last_date) }}{% else %}Осмотров не было{% endif %}
+                        {% if cat.last_weight %} · {{ cat.last_weight }} кг{% endif %}
+                    </span>
+                    <span class="go"><i class="bi bi-arrow-right"></i></span>
+                </div>
+            </div>
+        </article>
+    </div>
+    {% endfor %}
+    <div class="col-12 col-md-6 col-xl-4">
+        <button type="button" class="cat-add-card w-100" id="addCatCard">
+            <i class="bi bi-plus-circle-dotted"></i>
+            Новый котик
+        </button>
+    </div>
+</div>
+{% elif not loadError %}
+<div class="cat-panel empty-state">
+    {{ cat_icon() }}
+    <h2 class="h5 fw-800 text-body">Котики не найдены</h2>
+    <p class="mb-3">Попробуйте изменить поиск или сбросить фильтры.</p>
+    <button type="button" class="btn btn-outline-primary" id="emptyReset">Сбросить фильтры</button>
+</div>
+{% endif %}
+
+<script>
+(() => {
+    const searchForm = document.getElementById('searchForm');
+    if (!searchForm) return;
+
+    const api = window.taskflowCats;
+    const searchInput = document.getElementById('searchInput');
+    let timer = 0;
+
+    searchForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        clearTimeout(timer);
+        api.setFilter('name', searchInput.value);
+    });
+    searchInput.addEventListener('input', () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => api.setFilter('name', searchInput.value), 350);
+    });
+    if (api.takeSearchFocus()) {
+        searchInput.focus();
+        searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
+    }
+
+    document.getElementById('genderFilter').addEventListener('change', (e) => api.setFilter('gender', e.target.value));
+    document.getElementById('breedFilter').addEventListener('change', (e) => api.setFilter('breed', e.target.value));
+    document.getElementById('sortSelect').addEventListener('change', (e) => api.setFilter('sort', e.target.value));
+    document.getElementById('resetFilter').addEventListener('click', () => api.resetFilters());
+    document.getElementById('emptyReset')?.addEventListener('click', () => api.resetFilters());
+    document.getElementById('retryBtn')?.addEventListener('click', () => api.reload());
+
+    document.querySelectorAll('[data-status-chip]').forEach((chip) => {
+        chip.addEventListener('click', () => api.setFilter('status', chip.dataset.statusChip));
+    });
+
+    document.querySelectorAll('[data-open-cat]').forEach((card) => {
+        card.addEventListener('click', () => api.openCat(card.dataset.openCat));
+        card.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') api.openCat(card.dataset.openCat);
+        });
+    });
+
+    const openForm = () => {
+        api.toggleCatForm(null);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    document.getElementById('addCatBtn').addEventListener('click', openForm);
+    document.getElementById('addCatCard')?.addEventListener('click', openForm);
+})();
+</script>
+{% endblock %}

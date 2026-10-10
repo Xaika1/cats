@@ -1,0 +1,26 @@
+{% from "_macros.html" import cat_icon %}
+<div class="auth-wrap">
+    <aside class="auth-side">
+        <div class="d-flex align-items-center gap-2 fw-800 fs-5">
+            <span class="cat-logo">{{ cat_icon() }}</span>{{ appName }}
+        </div>
+        <div style="position:relative;z-index:1;">
+            <h2 class="mb-3">Каждый котик <em>под заботой</em> и присмотром</h2>
+            <p class="lead mb-4">Карточки жителей кафе, история осмотров, вес и самочувствие — всё в одном месте.</p>
+            <div class="d-flex flex-column gap-3">
+                <div class="auth-feature"><i class="bi bi-grid"></i>Каталог котиков с фото</div>
+                <div class="auth-feature"><i class="bi bi-heart-pulse"></i>Журнал здоровья и динамика веса</div>
+                <div class="auth-feature"><i class="bi bi-funnel"></i>Поиск и фильтры по состоянию</div>
+            </div>
+        </div>
+        <div class="small" style="color:rgba(251,247,240,.5);position:relative;z-index:1;">Котокафе · рабочее место сотрудника</div>
+        <div class="auth-blob">{{ cat_icon() }}</div>
+    </aside>
+    <main class="auth-main">
+        <div class="auth-box">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</div>
+
+{% block extra_js %}{% endblock %}
